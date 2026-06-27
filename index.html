@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MPI - Analytical Exposition</title>
+    
+    <!-- Local Fonts (letakkan file font di assets/fonts/) -->
+    <style>
+        @font-face {
+            font-family: 'Inter';
+            font-weight: 300;
+            src: url('assets/fonts/Inter-Light.woff2') format('woff2'),
+                 url('assets/fonts/Inter-Light.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'Inter';
+            font-weight: 400;
+            src: url('assets/fonts/Inter-Regular.woff2') format('woff2'),
+                 url('assets/fonts/Inter-Regular.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'Inter';
+            font-weight: 600;
+            src: url('assets/fonts/Inter-SemiBold.woff2') format('woff2'),
+                 url('assets/fonts/Inter-SemiBold.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'Orbitron';
+            font-weight: 500;
+            src: url('assets/fonts/Orbitron-Medium.woff') format('woff'),
+                 url('assets/fonts/Orbitron-Medium.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'Orbitron';
+            font-weight: 700;
+            src: url('assets/fonts/Orbitron-Bold.woff') format('woff'),
+                 url('assets/fonts/Orbitron-Bold.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'Orbitron';
+            font-weight: 900;
+            src: url('assets/fonts/Orbitron-Black.woff') format('woff'),
+                 url('assets/fonts/Orbitron-Black.ttf') format('truetype');
+        }
+    </style>
+    
+    <style>
+        :root {
+            /* Educational Safe Theme */
+            --bg-body: #f4f6f8; 
+            --bg-app: #ffffff; 
+            --primary: #0077b6; 
+            --primary-glow: rgba(0, 119, 182, 0.15);
+            --accent: #f77f00; 
+            --accent-glow: rgba(247, 127, 0, 0.2);
+            
+            --text-header: #023e8a; 
+            --text-main: #333333; 
+            --text-light: #6c757d; 
+            --border: #e0e4e8; 
+            
+            /* High-contrast colors for highlights */
+            --color-thesis: #d90429; 
+            --color-arg: #0077b6; 
+            --color-reit: #2a9d8f; 
+
+            /* Colors for Language Features */
+            --color-lf-present: #e63946;
+            --color-lf-conj: #4361ee;
+            --color-lf-eval: #f4a261;
+        }
+
+        body.dark-theme {
+            --bg-body: #121212; 
+            --bg-app: #1e1e1e; 
+            --primary: #4cc9f0; 
+            --primary-glow: rgba(76, 201, 240, 0.15);
+            --accent: #f77f00; 
+            --text-header: #90e0ef; 
+            --text-main: #e0e0e0; 
+            --text-light: #a0a0a0; 
+            --border: #333333; 
+            
+            --color-thesis: #ff4d6d; 
+            --color-arg: #48cae4; 
+            --color-reit: #2a9d8f; 
+            
+            --color-lf-present: #ff8fa3;
+            --color-lf-conj: #90e0ef;
+            --color-lf-eval: #ffb703;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
+        body {
+            background-color: var(--bg-body);
+            background-image: radial-gradient(var(--border) 1px, transparent 1px);
+            background-size: 20px 20px;
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh; width: 100vw; overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            color: var(--text-main);
+        }
+
+        #app {
+            position: relative;
+            background-color: var(--bg-app);
+            height: 80vh; 
+            width: calc(80vh * 16 / 9);
+            max-width: 98vw;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 40px rgba(0, 30, 80, 0.08);
+            display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+
+        h1, h2, h3, h4, .font-tech { font-family: 'Orbitron', sans-serif; }
+        
+        .svg-icon {
+            width: 2.5vmin; height: 2.5vmin;
+            fill: none; stroke: currentColor; stroke-width: 2;
+            stroke-linecap: round; stroke-linejoin: round;
+            transition: all 0.3s ease;
+        }
+
+        .header-bar {
+            background: var(--bg-app);
+            border-bottom: 1px solid var(--border);
+            border-radius: 16px 16px 0 0;
+            padding: 1vmin 3vmin;
+            display: flex; justify-content: space-between; align-items: center;
+            height: 10%;
+            z-index: 10;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            box-sizing: border-box;
+            /* animation state set below in splash section */
+        }
+        
+        .app-title { 
+            font-size: 3vmin; font-weight: bold; color: var(--primary); 
+            display: flex; align-items: center; gap: 1.5vmin; letter-spacing: 1px;
+        }
+
+        .header-controls { display: flex; align-items: center; gap: 3vmin; }
+        .ctrl-group { display: flex; align-items: center; gap: 1.5vmin; font-size: 1.8vmin; color: var(--text-light); }
+        
+        .audio-slider {
+            -webkit-appearance: none; width: 10vmin; height: 6px; background: var(--border);
+            border-radius: 3px; outline: none; cursor: pointer;
+        }
+        .audio-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none; width: 14px; height: 14px;
+            border-radius: 50%; background: var(--primary);
+            box-shadow: 0 0 5px rgba(0,0,0,0.2); cursor: pointer;
+        }
+        
+        .btn-author { 
+            display: flex; flex-direction: column; align-items: center; cursor: pointer; color: var(--text-light); transition: 0.3s;
+        }
+        .btn-author:hover { color: var(--primary); }
+        .btn-author .svg-icon { width: 3.5vmin; height: 3.5vmin; }
+
+        .footer-bar {
+            background: var(--bg-app);
+            border-top: 1px solid var(--border);
+            border-radius: 0 0 16px 16px;
+            padding: 0 3vmin;
+            display: flex; justify-content: center; align-items: center; gap: 4vmin;
+            height: 10%;
+            z-index: 10;
+            box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.03);
+            /* animation state set below in splash section */
+        }
+        .nav-btn {
+            background: none; border: none; font-size: 2vmin; font-weight: 600; color: var(--text-light);
+            cursor: pointer; padding: 1vmin 2vmin; border-radius: 8px; transition: color 0.3s, background 0.3s, border 0.3s;
+            display: flex; align-items: center; gap: 1vmin; letter-spacing: 1px;
+            font-family: 'Orbitron', sans-serif;
+            /* initial state for animation defined in splash section */
+        }
+        .nav-btn:hover { color: var(--primary); background: var(--bg-body); }
+        .nav-btn.active { 
+            color: var(--primary); 
+            background: var(--primary-glow);
+            border: 1px solid rgba(0, 119, 182, 0.3);
+        }
+
+        /* ── SPLASH: full-cover ── */
+        .splash-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.82)), url('assets/images/splash-bg.jpg');
+            background-size: cover;
+            background-position: center;
+            z-index: 80;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5vmin;
+            border-radius: 16px;
+            transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1), transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        body.dark-theme .splash-screen {
+            background-image: linear-gradient(rgba(18, 18, 18, 0.90), rgba(18, 18, 18, 0.90)), url('assets/images/splash-bg.jpg');
+        }
+        .splash-screen.hiding {
+            opacity: 0;
+            transform: scale(1.04);
+            pointer-events: none;
+        }
+        .splash-screen.hidden { display: none; }
+
+        .splash-title {
+            text-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            animation: splashFadeDown 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+            text-align: center;
+        }
+        .splash-btn-container {
+            display: flex; gap: 4vmin; justify-content: center; align-items: center;
+            animation: splashFadeUp 0.9s 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        .splash-btn {
+            width: 25vmin; height: 8vmin; display: flex; justify-content: center; align-items: center; gap: 1.5vmin;
+            font-family: 'Orbitron', sans-serif; font-size: 2.2vmin; font-weight: bold; border-radius: 12px; cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); letter-spacing: 1.5px; text-transform: uppercase;
+        }
+        .splash-btn-start { background: var(--primary); color: #ffffff; border: 2px solid var(--primary); box-shadow: 0 6px 24px rgba(0, 119, 182, 0.3); }
+        body.dark-theme .splash-btn-start { color: #121212; }
+        .splash-btn-start:hover { background: #005f94; border-color: #005f94; transform: translateY(-3px); box-shadow: 0 12px 28px rgba(0, 119, 182, 0.4); }
+        .splash-btn-guide { background: transparent; color: var(--primary); border: 2px solid var(--primary); }
+        .splash-btn-guide:hover { background: var(--primary); color: #ffffff; transform: translateY(-3px); box-shadow: 0 10px 25px rgba(0, 119, 182, 0.25); }
+
+        @keyframes splashFadeDown {
+            from { opacity: 0; transform: translateY(-28px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes splashFadeUp {
+            from { opacity: 0; transform: translateY(28px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInUp   { from { opacity: 0; transform: translateY(20px); }  to { opacity: 1; transform: translateY(0); } }
+
+        /* ── HEADER hidden by default, slides in after START ── */
+        .header-bar {
+            max-height: 0;
+            opacity: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            overflow: hidden;
+            transition: max-height 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+                        opacity 0.45s ease,
+                        padding 0.45s ease;
+        }
+        .header-bar.revealed {
+            max-height: 15vh;
+            opacity: 1;
+            padding-top: 1vmin;
+            padding-bottom: 1vmin;
+        }
+
+        /* ── FOOTER hidden by default, slides up after START ── */
+        .footer-bar {
+            max-height: 0;
+            opacity: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            overflow: hidden;
+            transition: max-height 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+                        opacity 0.45s ease 0.08s,
+                        padding 0.45s ease;
+        }
+        .footer-bar.revealed {
+            max-height: 15vh;
+            opacity: 1;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+
+        /* ── NAV-BTN: staggered pop-in ── */
+        .nav-btn {
+            opacity: 0;
+            transform: scale(0.75) translateY(8px);
+        }
+        .nav-btn.pop-in {
+            animation: navPopIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        @keyframes navPopIn {
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* ── FULLSCREEN BTN: hidden until start ── */
+        .fullscreen-btn {
+            opacity: 0; transform: scale(0.8);
+            transition: opacity 0.4s ease 0.85s, transform 0.4s ease 0.85s,
+                        color 0.3s, border-color 0.3s, box-shadow 0.3s;
+        }
+        .fullscreen-btn.revealed { opacity: 1; transform: scale(1); }
+
+        .main-content { flex: 1; position: relative; overflow: hidden; padding: 2vmin; }
+        .slider-track { display: flex; width: 500%; height: 100%; transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1); }
+        .slide-panel { width: 20%; height: 100%; display: flex; flex-direction: column; padding: 1vmin 3vmin; }
+
+        .tech-box { background: var(--bg-body); border: 1px solid var(--border); border-radius: 12px; padding: 2.5vmin; }
+        
+        .btn-action { 
+            background: var(--accent); color: #fff; border: none; padding: 1.2vmin 3vmin; font-size: 2vmin; 
+            border-radius: 8px; cursor: pointer; transition: 0.3s; font-family: 'Orbitron', sans-serif; 
+            display: flex; align-items: center; gap: 1vmin; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;
+            box-shadow: 0 4px 10px rgba(247, 127, 0, 0.3);
+        }
+        .btn-action:hover { background: #e67600; transform: translateY(-2px); box-shadow: 0 6px 15px rgba(247, 127, 0, 0.4); }
+        
+        h2.title-page { font-size: 3.5vmin; color: var(--text-header); margin-bottom: 2vmin; display: flex; align-items: center; gap: 1.5vmin; font-weight: 700; }
+
+        .home-content { display: flex; gap: 4vmin; height: 100%; align-items: center; }
+        .home-left { flex: 1.2; display: flex; flex-direction: column; justify-content: center; }
+        .home-right { flex: 0.8; display: flex; justify-content: center; }
+        .banner-img { max-height: 40vmin; max-width: 100%; object-fit: contain; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        
+        .objective-list { list-style: none; margin-top: 2vmin; margin-bottom: 3vmin; }
+        .objective-list li { margin-bottom: 1.5vmin; font-size: 2vmin; display: flex; align-items: center; gap: 1.5vmin; color: var(--text-main); }
+        .objective-list li svg { color: var(--primary); width: 2.5vmin; height: 2.5vmin; flex-shrink: 0;}
+
+        /* Modified Learn Container - No Columns, Just Full Width */
+        .learn-container { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+        
+        .concept-carousel {
+            background: var(--bg-app); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 1vmin; overflow: hidden;
+            display: flex; flex-direction: column; box-shadow: 0 4px 15px rgba(0,0,0,0.03); flex-shrink: 0;
+        }
+        .concept-tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--bg-body); }
+        .c-tab {
+            flex: 1; padding: 0.8vmin; border: none; background: transparent; cursor: pointer; font-size: 1.6vmin;
+            font-family: 'Orbitron', sans-serif; font-weight: 600; color: var(--text-light); transition: 0.3s;
+        }
+        .c-tab:hover { background: rgba(0, 119, 182, 0.05); color: var(--primary); }
+        .c-tab.active { background: var(--bg-app); color: var(--primary); border-bottom: 3px solid var(--primary); }
+        body.dark-theme .c-tab.active { background: var(--primary); color: #121212; }
+        .concept-body { padding: 1.5vmin 2.5vmin; font-size: 1.7vmin; line-height: 1.5; color: var(--text-main); min-height: auto; display: block;}
+        
+        .concept-body ul { margin-left: 2.5vmin; }
+        .concept-body li { margin-bottom: 0.5vmin; }
+        .concept-body p { margin-bottom: 0.5vmin; }
+
+        .controls-row { 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-bottom: 0.8vmin; flex-wrap: wrap; gap: 1vmin; 
+        }
+        
+        .filter-group { display: flex; gap: 1.5vmin; flex: 1; flex-wrap: wrap; align-items: center;}
+        .custom-select {
+            padding: 0.8vmin 1.2vmin; font-size: 1.6vmin; font-family: 'Inter', sans-serif;
+            border: 1px solid var(--border); border-radius: 8px; background: var(--bg-app); color: var(--text-main);
+            outline: none; cursor: pointer; flex: 1; min-width: 150px;
+        }
+        .custom-select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-glow); }
+
+        .text-group { display: flex; gap: 1vmin; align-items: center; justify-content: flex-end; }
+        .text-label { font-size: 1.8vmin; font-weight: bold; color: var(--text-header); font-family: 'Orbitron', sans-serif; }
+        .round-btn {
+            width: 3.8vmin; height: 3.8vmin; border-radius: 50%; border: 2px solid var(--border);
+            background: var(--bg-app); color: var(--text-light); font-weight: bold; font-size: 1.8vmin;
+            cursor: pointer; transition: 0.3s; display: flex; justify-content: center; align-items: center;
+        }
+        .round-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .round-btn.active { background: var(--primary); color: #ffffff; border-color: var(--primary); box-shadow: 0 4px 10px var(--primary-glow); }
+        body.dark-theme .round-btn.active { color: #121212; }
+
+        .text-box {
+            background: var(--bg-body); border: 1px solid var(--border); padding: 2.5vmin; border-radius: 12px; 
+            font-size: 2vmin; line-height: 1.6; text-align: justify; overflow-y: auto; flex: 1; color: var(--text-main);
+        }
+        .text-box span { transition: all 0.3s; border-radius: 4px; padding: 0.2vmin 0.5vmin; }
+        
+        .text-box.hl-thesis-mode .txt-thesis { background: rgba(217, 4, 41, 0.15); color: #900015; border-bottom: 2px solid var(--color-thesis); }
+        body.dark-theme .text-box.hl-thesis-mode .txt-thesis { color: #ff8fa3; background: rgba(255, 77, 109, 0.2); }
+        
+        .text-box.hl-arg-mode .txt-arg { background: rgba(0, 119, 182, 0.15); color: #004a75; border-bottom: 2px solid var(--color-arg); }
+        body.dark-theme .text-box.hl-arg-mode .txt-arg { color: #90e0ef; background: rgba(72, 202, 228, 0.2); }
+        
+        .text-box.hl-reit-mode .txt-reit { background: rgba(42, 157, 143, 0.15); color: #165c53; border-bottom: 2px solid var(--color-reit); }
+        body.dark-theme .text-box.hl-reit-mode .txt-reit { color: #69ebd0; background: rgba(42, 157, 143, 0.2); }
+
+        .text-box.hl-lf-present .txt-lf-present { font-weight: 700; color: var(--color-lf-present); border-bottom: 2px dashed var(--color-lf-present); }
+        .text-box.hl-lf-conj .txt-lf-conj { font-weight: 700; color: var(--color-lf-conj); border-bottom: 2px dashed var(--color-lf-conj); }
+        .text-box.hl-lf-eval .txt-lf-eval { font-weight: 700; color: var(--color-lf-eval); border-bottom: 2px dashed var(--color-lf-eval); }
+        
+        body.dark-theme .text-box.hl-lf-present .txt-lf-present { color: #ff8fa3; border-bottom-color: #ff8fa3; }
+        body.dark-theme .text-box.hl-lf-conj .txt-lf-conj { color: #90e0ef; border-bottom-color: #90e0ef; }
+        body.dark-theme .text-box.hl-lf-eval .txt-lf-eval { color: #ffb703; border-bottom-color: #ffb703; }
+
+        .quiz-container { display: flex; flex-direction: column; height: 100%; align-items: center; justify-content: center; }
+        .quiz-question-box {
+            background: var(--bg-app); border: 1px solid var(--border); padding: 3vmin; border-radius: 12px; 
+            width: 90%; text-align: center; margin-bottom: 3vmin; box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        }
+        .quiz-question-box p { font-size: 2.5vmin; line-height: 1.6; color: var(--text-main); }
+        
+        .quiz-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2vmin; width: 90%; }
+        .quiz-opt {
+            background: var(--bg-app); border: 2px solid var(--border); padding: 2vmin; border-radius: 8px; cursor: pointer; 
+            font-size: 2vmin; transition: 0.2s; color: var(--text-main); text-align: left; display: flex; align-items: center; gap: 1.5vmin; font-weight: 500;
+        }
+        .quiz-opt:hover { border-color: var(--primary); background: var(--primary-glow); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 119, 182, 0.1); }
+
+        .session-card {
+            background: var(--bg-app); border: 1px solid var(--border); border-radius: 12px; padding: 2.5vmin;
+            display: flex; justify-content: space-between; align-items: center; width: 100%; transition: 0.3s; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+        }
+        .session-card:hover { border-color: var(--primary); box-shadow: 0 8px 20px rgba(0, 119, 182, 0.08); transform: translateY(-2px); }
+        .session-info { text-align: left; }
+        .session-badge { background: var(--primary-glow); color: var(--primary); padding: 0.5vmin 1.5vmin; border-radius: 20px; font-size: 1.5vmin; font-family: 'Orbitron', sans-serif; font-weight: bold; }
+
+        .modal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); 
+            z-index: 100; display: none; justify-content: center; align-items: center;
+        }
+        .modal-box {
+            background: var(--bg-app); padding: 4vmin; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 15px 50px rgba(0,0,0,0.15);
+            text-align: center; width: 60%; max-width: 500px; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative;
+        }
+        .close-modal { position: absolute; top: 2vmin; right: 2vmin; cursor: pointer; color: var(--text-light); transition: 0.3s; }
+        .close-modal:hover { color: var(--color-thesis); transform: rotate(90deg); }
+        .close-modal .svg-icon { width: 4vmin; height: 4vmin; }
+        
+        .modal-box h3 { color: var(--text-header); font-size: 3.5vmin; margin-bottom: 2vmin; font-weight: 700; }
+        .modal-box p { font-size: 2vmin; color: var(--text-main); margin-bottom: 1.5vmin; line-height: 1.5; }
+        .modal-box img.author-pic { width: 15vmin; height: 15vmin; border-radius: 50%; margin-bottom: 2vmin; object-fit: cover; border: 3px solid var(--primary); box-shadow: 0 5px 15px var(--primary-glow); }
+
+        .guide-item { display: flex; align-items: center; text-align: left; background: var(--bg-body); padding: 1.5vmin; border-radius: 8px; margin-bottom: 1.5vmin; border-left: 4px solid var(--primary); }
+        .guide-item .svg-icon { color: var(--primary); width: 3.5vmin; height: 3.5vmin; margin-right: 2vmin; flex-shrink: 0; }
+
+        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .fullscreen-btn {
+            position: absolute; bottom: 12%; right: 2vmin; background: var(--bg-app); color: var(--text-light); border: 1px solid var(--border); width: 6vmin; height: 6vmin; 
+            border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 40; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            /* animation state defined in splash section */
+        }
+        .fullscreen-btn:hover { color: var(--primary); border-color: var(--primary); transform: scale(1.1); box-shadow: 0 6px 15px rgba(0, 119, 182, 0.2); }
+
+        .theme-switch { position: relative; display: inline-block; width: 4vmin; height: 2.2vmin; margin: 0 0.5vmin; }
+        .theme-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border); transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 1.6vmin; width: 1.6vmin; left: 0.3vmin; bottom: 0.3vmin; background-color: var(--bg-app); transition: .4s; border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(1.8vmin); background-color: #121212; }
+
+        @media (max-aspect-ratio: 1/1) {
+            #app { width: 95vw; height: 90vh; }
+            .header-bar { height: auto; flex-direction: column; gap: 2vmin; padding: 2vmin; border-radius: 12px 12px 0 0; }
+            .header-controls { width: 100%; justify-content: space-around; }
+            .footer-bar { height: auto; flex-wrap: wrap; padding: 1.5vmin; border-radius: 0 0 12px 12px; gap: 1vmin; justify-content: space-evenly; }
+            .nav-btn { font-size: 2.2vmin; padding: 1.5vmin; flex-direction: column; gap: 0.5vmin; }
+            .nav-btn .svg-icon { width: 3.5vmin; height: 3.5vmin; }
+            
+            .slider-track { flex-direction: column; width: 100%; height: 500%; }
+            .slide-panel { width: 100%; height: 20%; }
+            
+            .home-content { flex-direction: column; text-align: center; }
+            .home-left { order: 2; }
+            .home-right { order: 1; }
+            .banner-img { max-height: 25vh; }
+            .objective-list li { justify-content: center; text-align: left; }
+            .controls-row { flex-direction: column; gap: 1.5vmin; align-items: center; }
+            .quiz-grid { grid-template-columns: 1fr; }
+            .modal-box { width: 90%; }
+            .fullscreen-btn { bottom: 18%; right: 3vmin; }
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="bgm"><source src="assets/audio/bgm.mp3" type="audio/mpeg"></audio>
+    <audio id="sfx-click"><source src="assets/audio/click.mp3" type="audio/mpeg"></audio>
+    <audio id="sfx-correct"><source src="assets/audio/correct.mp3" type="audio/mpeg"></audio>
+    <audio id="sfx-wrong"><source src="assets/audio/wrong.mp3" type="audio/mpeg"></audio>
+
+    <div id="app">
+        <div class="header-bar">
+            <div class="app-title font-tech">
+                <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                ANALYTICAL EXPOSITION
+            </div>
+            <div class="header-controls">
+                <div class="ctrl-group">
+                    <svg class="svg-icon" style="width: 2vmin; height: 2vmin; color: var(--text-light);" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                    <label class="theme-switch">
+                        <input type="checkbox" id="theme-toggle">
+                        <span class="slider round"></span>
+                    </label>
+                    <svg class="svg-icon" style="width: 1.8vmin; height: 1.8vmin; color: var(--text-light);" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                </div>
+                <div class="ctrl-group">
+                    <div id="vol-icon-container" style="display:flex; align-items:center; cursor:pointer;">
+                        <svg id="vol-icon" class="svg-icon" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                    </div>
+                    <input type="range" class="audio-slider" id="vol-slider" min="0" max="100" value="50">
+                </div>
+                <div class="btn-author btn-sound" onclick="openModal('modal-author')">
+                    <svg class="svg-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                   
+                </div>
+            </div>
+        </div>
+
+        <div class="splash-screen" id="splash">
+            <div class="splash-title">
+                <h1 class="font-tech" style="font-size: 4.5vmin; color: var(--text-header); letter-spacing: 2px;">ANALYTICAL EXPOSITION</h1>
+                <p style="font-size: 2.2vmin; color: var(--primary); margin-top: 1.2vmin; font-weight: 600; letter-spacing: 0.5px;">Interactive Learning Module</p>
+            </div>
+            
+            <div class="splash-btn-container">
+                <button class="splash-btn splash-btn-start btn-sound" onclick="startApp()">
+                    <svg class="svg-icon" viewBox="0 0 24 24" style="width: 2.2vmin; height: 2.2vmin;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    START
+                </button>
+                <button class="splash-btn splash-btn-guide btn-sound" onclick="openModal('modal-panduan')">
+                    <svg class="svg-icon" viewBox="0 0 24 24" style="width: 2.2vmin; height: 2.2vmin;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    GUIDE
+                </button>
+            </div>
+            <span style="position: absolute; bottom: 1.5vmin; font-size: 1vmin; color: var(--text-light); font-family: 'Inter', sans-serif;">Background: Photo by Aaron Burden on Unsplash</span>
+        </div>
+
+        <div class="main-content">
+            <div class="slider-track" id="slider-track">
+                
+                <div class="slide-panel">
+                    <div class="home-content">
+                        <div class="home-left">
+                            <h3 class="font-tech" style="font-size: 3.5vmin; color: var(--primary); margin-bottom: 1vmin;">Welcome, Student!</h3>
+                            <p style="font-size: 2vmin; color: var(--text-light); line-height: 1.6;">Hello there! Today, we will learn how to persuade your readers effectively through strong arguments and solid reasoning.</p>
+                            
+                            <div class="tech-box" style="margin-top: 2.5vmin;">
+                                <div style="color:var(--text-header); font-weight:bold; font-family:'Orbitron', sans-serif; border-bottom: 2px solid var(--border); padding-bottom:1vmin; margin-bottom:1.5vmin;">Learning Objectives:</div>
+                                <ul class="objective-list">
+                                    <li><svg viewBox="0 0 24 24" class="svg-icon"><polyline points="20 6 9 17 4 12"></polyline></svg> Identify the social function of the text.</li>
+                                    <li><svg viewBox="0 0 24 24" class="svg-icon"><polyline points="20 6 9 17 4 12"></polyline></svg> Analyze the text structure (Thesis, Arguments, Reiteration).</li>
+                                    <li><svg viewBox="0 0 24 24" class="svg-icon"><polyline points="20 6 9 17 4 12"></polyline></svg> Understand the language features commonly used.</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="home-right" style="display: flex; flex-direction: column; align-items: center; gap: 0.8vmin;">
+                            <!-- Banner diganti ke gambar Tumpukan Buku -->
+                            <img src="assets/images/banner-home.jpg" alt="Banner" class="banner-img" onerror="this.style.display='none'">
+                            <span style="font-size: 1vmin; color: var(--text-light); font-family: 'Inter', sans-serif; text-align: center;">Source: Photo by Jaredd Craig on Unsplash</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slide-panel">
+                    
+                    <div class="concept-carousel">
+                        <div class="concept-tabs">
+                            <button class="c-tab active btn-sound" onclick="showConcept(0, this)">DEFINITION</button>
+                            <button class="c-tab btn-sound" onclick="showConcept(1, this)">TEXT STRUCTURE</button>
+                            <button class="c-tab btn-sound" onclick="showConcept(2, this)">LANGUAGE FEATURES</button>
+                        </div>
+                        <div class="concept-body" id="concept-display">
+                            <!-- Diisi oleh Javascript -->
+                        </div>
+                    </div>
+                    
+                    <div class="learn-container">
+                        <div class="controls-row">
+                            <div class="filter-group">
+                                <select id="struct-select" class="custom-select btn-sound" onchange="applyFilters()">
+                                    <option value="">-- Structure Filter --</option>
+                                    <option value="thesis">Thesis Highlights</option>
+                                    <option value="arg">Argument Highlights</option>
+                                    <option value="reit">Reiteration Highlights</option>
+                                </select>
+                                <select id="lang-select" class="custom-select btn-sound" onchange="applyFilters()">
+                                    <option value="">-- Language Features --</option>
+                                    <option value="present">Simple Present Tense</option>
+                                    <option value="conj">Internal Conjunctions</option>
+                                    <option value="eval">Evaluative Words</option>
+                                </select>
+                            </div>
+                            <div class="text-group">
+                                <span class="text-label">Text:</span>
+                                <button class="round-btn active btn-sound" onclick="loadText(1, this)">1</button>
+                                <button class="round-btn btn-sound" onclick="loadText(2, this)">2</button>
+                                <button class="round-btn btn-sound" onclick="loadText(3, this)">3</button>
+                            </div>
+                        </div>
+                        <div class="text-box" id="analysis-text">
+                            <!-- Text content injected via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slide-panel">
+                    <div class="quiz-container">
+                        <div class="quiz-question-box">
+                            <p style="color:var(--text-light); font-size:1.8vmin; font-weight:bold; margin-bottom:1.5vmin; text-transform:uppercase;">Question <span id="play-q-num">1</span>/5</p>
+                            <p id="play-question-text" style="font-style: italic; color:var(--text-header); font-size:2.8vmin;">"Firstly, breakfast provides the energy needed to start the day. Your body gets fuel to function properly."</p>
+                            <p style="margin-top: 2.5vmin; font-weight: 600; font-size: 2vmin; color:var(--text-light);">Identify the structure of the text fragment above:</p>
+                        </div>
+                        <div class="quiz-grid" id="play-options">
+                            <!-- Options injected via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slide-panel">
+                   
+                    <div class="quiz-container" id="test-container" style="justify-content: flex-start; overflow-y: auto; padding-top: 2vmin; width: 100%;">
+                        <!-- Session selection menu is initialized here -->
+                    </div>
+                </div>
+
+                <div class="slide-panel">
+                    
+                    <div class="tech-box" style="height: 85%; overflow-y: auto; display: flex; flex-direction: column; justify-content: center;">
+                        <h3 style="color:var(--primary); margin-bottom:2vmin; font-size:3vmin; font-family:'Orbitron', sans-serif;">Bibliography & Sources</h3>
+                        <p style="margin-bottom: 2vmin; color: var(--text-light); font-size: 2vmin;">The materials and assets used in this interactive learning module are sourced from:</p>
+                        <ul style="list-style-type: disc; padding-left: 4vmin; color: var(--text-main); font-size: 2vmin; line-height: 2;">
+                            <li><strong>Textbook:</strong> <em>English: "Stop Bullying Now"</em> for Senior High School. Ministry of Education and Culture.</li>
+                            <li><strong>Educational Material:</strong> The Analytical Exposition structure is designed based on standard curriculum guidelines.</li>
+                            <li><strong>Iconography:</strong> Open Source <em>Feather Icons</em> for visual UI elements.</li>
+                            <li><strong>Audio:</strong> Royalty-free background music and standard educational sound effects.</li>
+                            <li><strong>Web Reference:</strong> <a href="#" style="color:var(--primary); text-decoration: none; font-weight: 600;">www.english-academy.id/analytical-exposition</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="footer-bar">
+            <button class="nav-btn active btn-sound" onclick="changeTab(0, this)">
+                <svg class="svg-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                HOME
+            </button>
+            <button class="nav-btn btn-sound" onclick="changeTab(1, this)">
+                <svg class="svg-icon" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                LEARN
+            </button>
+            <button class="nav-btn btn-sound" onclick="changeTab(2, this)">
+                <svg class="svg-icon" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4M8 10v4M15 13h.01M18 11h.01"/></svg>
+                PLAY
+            </button>
+            <button class="nav-btn btn-sound" onclick="changeTab(3, this)">
+                <svg class="svg-icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                TEST
+            </button>
+            <button class="nav-btn btn-sound" onclick="changeTab(4, this)">
+                <svg class="svg-icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                REFERENCE
+            </button>
+        </div>
+
+        <button class="fullscreen-btn btn-sound" onclick="toggleFullScreen()" title="Full Screen">
+            <svg class="svg-icon" id="fs-icon" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        </button>
+
+        <div class="modal-overlay" id="modal-author">
+            <div class="modal-box">
+                <div class="close-modal btn-sound" onclick="closeModal('modal-author')">
+                    <svg class="svg-icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </div>
+                <img src="assets/images/author.jpg" alt="Author" class="author-pic" onerror="this.style.display='none'">
+             
+                <p style="font-weight: bold; font-size: 2.8vmin; color:var(--text-main);">Abdul Aziz, S.Pd.</p>
+                <p style="color:var(--primary); font-weight:600;">SMA Madinatunnajah</p>
+                <hr style="margin: 2.5vmin 0; border: 0; border-top: 1px solid var(--border);">
+                <p style="font-size: 1.8vmin; color: var(--text-light); font-style: italic;">"Empowering young minds through digital linguistics. Let's learn together!"</p>
+            </div>
+        </div>
+
+        <div class="modal-overlay" id="modal-panduan">
+            <div class="modal-box" style="width: 70%; max-width: 600px;">
+                <div class="close-modal btn-sound" onclick="closeModal('modal-panduan')">
+                    <svg class="svg-icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </div>
+                <h3 class="font-tech" style="color:var(--primary)"><svg class="svg-icon" viewBox="0 0 24 24" style="display:inline; width:4vmin; height:4vmin; vertical-align:middle; margin-right:1vmin;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> System Guide</h3>
+                
+                <div class="guide-item">
+                    <svg class="svg-icon" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                    <div><strong style="color:var(--text-header)">Learn:</strong> Choose a text and use the Dropdown menus to highlight Structure and Language Features. Read the theories in the carousel!</div>
+                </div>
+                <div class="guide-item">
+                    <svg class="svg-icon" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4M8 10v4M15 13h.01M18 11h.01"/></svg>
+                    <div><strong style="color:var(--text-header)">Play:</strong> Let's play a mini game! Identify the text structure from the given fragments independently (5 Questions).</div>
+                </div>
+                <div class="guide-item">
+                    <svg class="svg-icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    <div><strong style="color:var(--text-header)">Test:</strong> Complete 3 unique evaluation sessions, each containing 10 specific questions designed based on our reading materials.</div>
+                </div>
+
+                <button class="btn-action btn-sound" onclick="closeModal('modal-panduan')" style="margin-top: 3vmin; width: 100%; justify-content:center;">GOT IT!</button>
+            </div>
+        </div>
+
+        <div class="modal-overlay" id="modal-feedback">
+            <div class="modal-box">
+                <div class="close-modal btn-sound" onclick="closeModal('modal-feedback')">
+                    <svg class="svg-icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </div>
+                <div id="fb-icon-container" style="margin-bottom: 2vmin;"></div>
+                <h3 id="fb-title" class="font-tech">Result</h3>
+                <p id="fb-msg" style="font-size: 2.2vmin;">Feedback message.</p>
+                <button class="btn-action btn-sound" onclick="closeModal('modal-feedback')" style="margin-top: 3vmin; justify-content:center; width:100%;">CONTINUE</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const bgm = document.getElementById('bgm');
+        const sfxClick = document.getElementById('sfx-click');
+        const sfxCorrect = document.getElementById('sfx-correct');
+        const sfxWrong = document.getElementById('sfx-wrong');
+        const volSlider = document.getElementById('vol-slider');
+        const volIconContainer = document.getElementById('vol-icon-container');
+        const themeToggle = document.getElementById('theme-toggle');
+        let isAudioInit = false;
+        let isAppStarted = false;
+
+        const iconVolOn = `<svg class="svg-icon" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>`;
+        const iconVolLow = `<svg class="svg-icon" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
+        const iconVolOff = `<svg class="svg-icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`;
+
+        document.body.addEventListener('click', () => {
+            if (!isAudioInit) {
+                bgm.volume = volSlider.value / 100;
+                bgm.play().catch(() => console.log("BGM pending user permission"));
+                isAudioInit = true;
+            }
+        }, { once: true });
+
+        volSlider.addEventListener('input', (e) => {
+            let vol = e.target.value / 100;
+            bgm.volume = vol;
+            if (vol === 0) volIconContainer.innerHTML = iconVolOff;
+            else if (vol < 0.5) volIconContainer.innerHTML = iconVolLow;
+            else volIconContainer.innerHTML = iconVolOn;
+        });
+
+        themeToggle.addEventListener('change', (e) => {
+            if(e.target.checked) {
+                document.body.classList.add('dark-theme');
+            } else {
+                document.body.classList.remove('dark-theme');
+            }
+            sfxClick.currentTime = 0; sfxClick.play().catch(e=>console.log("SFX blocked"));
+        });
+
+        document.querySelectorAll('.btn-sound, .quiz-opt').forEach(btn => {
+            btn.addEventListener('click', () => {
+                sfxClick.currentTime = 0; sfxClick.play().catch(e=>console.log("SFX blocked"));
+            });
+        });
+
+        function startApp() {
+            if (isAppStarted) return;
+            isAppStarted = true;
+
+            // Play BGM on first interaction
+            bgm.volume = volSlider.value / 100;
+            bgm.play().catch(() => console.log("BGM pending user permission"));
+            isAudioInit = true;
+
+            const splash = document.getElementById('splash');
+
+            // 1. Splash fades & scales out
+            splash.classList.add('hiding');
+
+            setTimeout(() => {
+                splash.classList.add('hidden');
+
+                // 2. Header slides down from top (delay slight so splash is gone)
+                const header = document.querySelector('.header-bar');
+                header.classList.add('revealed');
+
+                // 3. Footer slides up from bottom (slightly later)
+                const footer = document.querySelector('.footer-bar');
+                setTimeout(() => footer.classList.add('revealed'), 80);
+
+                // 4. Nav buttons pop in with stagger
+                document.querySelectorAll('.nav-btn').forEach((btn, i) => {
+                    setTimeout(() => {
+                        btn.classList.add('pop-in');
+                    }, 300 + i * 90);
+                });
+
+                // 5. Fullscreen button fades in last
+                document.querySelector('.fullscreen-btn').classList.add('revealed');
+
+                // 6. Initialize content
+                const homeTabBtn = document.querySelector('.footer-bar button:first-child');
+                changeTab(0, homeTabBtn);
+                showConcept(0, document.querySelector('.c-tab.active'));
+                loadText(1, document.querySelector('.round-btn.active'));
+                initializeTestHub();
+
+            }, 680);
+        }
+
+        function changeTab(index, btnObj) {
+            if (!isAppStarted) {
+                showFeedback(false, "ATTENTION, PLEASE!", "My dear student, please read the GUIDE and click the START button on the main screen first before exploring the modules.");
+                return;
+            }
+            
+            document.querySelectorAll('.nav-btn').forEach(t => t.classList.remove('active'));
+            btnObj.classList.add('active');
+            
+            const track = document.getElementById('slider-track');
+            const isPortrait = window.matchMedia("(max-aspect-ratio: 1/1)").matches;
+            
+            if (isPortrait) track.style.transform = `translateY(-${index * 20}%)`;
+            else track.style.transform = `translateX(-${index * 20}%)`;
+        }
+
+        window.addEventListener('resize', () => {
+            const activeTabBtn = document.querySelector('.nav-btn.active');
+            if(activeTabBtn) activeTabBtn.click();
+        });
+
+        // --- STREAMING_CHUNK:Implementing Carousel & Texts Data... ---
+        const conceptData = [
+            `<p>An <strong>Analytical Exposition</strong> is a fascinating type of spoken or written text designed to persuade listeners or readers that something is genuinely the case.</p>
+             <p>Imagine you have a brilliant idea or a strong opinion about a topic. Through this text, you will learn how to convince the world by presenting well-structured, logical, and powerful reasons!</p>`,
+            
+            `<p>Every great analytical exposition follows a neat structure to make your writing clear and convincing:</p>
+             <ul style="margin-top:1vmin;">
+                <li><strong>Thesis:</strong> The opening statement where you introduce the topic and clearly express your main point of view.</li>
+                <li><strong>Arguments:</strong> The heart of your text. Here, you explain your reasons to support the thesis in detail.</li>
+                <li><strong>Reiteration:</strong> The closing part. You powerfully restate your point of view to leave a strong impression.</li>
+             </ul>`,
+            
+            `<p>To make your arguments sound professional and persuasive, we use specific language features:</p>
+             <ul style="margin-top:1vmin;">
+                <li><strong>Simple Present Tense:</strong> Used because we are stating general truths, facts, and current opinions.</li>
+                <li><strong>Internal Conjunctions:</strong> Words like 'firstly', 'furthermore', or 'moreover' that act as bridges connecting your ideas.</li>
+                <li><strong>Evaluative Words:</strong> Words like 'crucial', 'important', or 'undeniable' to give emotional weight.</li>
+             </ul>`
+        ];
+
+        function showConcept(idx, btnObj) {
+            document.querySelectorAll('.c-tab').forEach(b => b.classList.remove('active'));
+            btnObj.classList.add('active');
+            
+            const display = document.getElementById('concept-display');
+            display.style.opacity = '0';
+            setTimeout(() => {
+                display.innerHTML = conceptData[idx];
+                display.style.opacity = '1';
+                display.style.transition = 'opacity 0.3s ease';
+            }, 150);
+        }
+
+        const textData = {
+            1: {
+                title: "The Importance of Breakfast",
+                image: "assets/images/text1-breakfast.jpg",
+                caption: "Photo by Brooke Lark",
+                thesis: `Many people <span class="txt-lf-present">frequently skip</span> their breakfast because they are simply too busy in the chaotic morning hours or incorrectly believe it helps them with rapid weight loss. <span class="txt-lf-conj">However</span>, I <span class="txt-lf-eval">strongly argue</span> that having a highly nutritious breakfast is undeniably the most <span class="txt-lf-eval">critical</span> and foundational part of starting our day in the right way.`,
+                arg: `<span class="txt-lf-conj">Firstly</span>, a healthy breakfast <span class="txt-lf-present">provides</span> the essential glucose and energy needed to kickstart our body and brain after a long night of fasting. When you eat in the morning, your metabolism is boosted significantly, which directly prevents you from feeling tired, lethargic, or unfocused during the day. <span class="txt-lf-conj">Secondly</span>, eating a balanced breakfast dramatically <span class="txt-lf-present">improves</span> our cognitive abilities, attention span, and memory retention. Numerous scientific studies show that both active students and professional workers who eat a proper morning meal perform significantly better in their complex tasks and retain new information much more effectively. <span class="txt-lf-conj">Furthermore</span>, eating in the morning prevents extreme hunger cravings, which usually lead to unhealthy snacking later in the afternoon.`,
+                reit: `<span class="txt-lf-conj">Therefore</span>, carefully weighing all of these immense physical and mental advantages, it is absolutely <span class="txt-lf-eval">clear</span> and indisputable that we must never skip breakfast if we want to maintain a healthy lifestyle.`
+            },
+            2: {
+                title: "Why We Should Read Books",
+                image: "assets/images/text2-books.jpg",
+                caption: "Photo by Patrick Tomasso",
+                thesis: `In today's fast-paced digital era, people predominantly <span class="txt-lf-present">prefer scrolling</span> through social media platforms or watching brief videos rather than spending time reading books. <span class="txt-lf-conj">Nevertheless</span>, I <span class="txt-lf-eval">strongly believe</span> and argue that reading books is still a highly <span class="txt-lf-eval">vital</span> and irreplaceable habit that we must actively maintain and cultivate.`,
+                arg: `<span class="txt-lf-conj">To begin with</span>, reading books regularly <span class="txt-lf-present">stimulates</span> our complex brain connectivity and drastically <span class="txt-lf-present">expands</span> our descriptive vocabulary in ways that passive media consumption cannot. It uniquely forces our minds to think critically, process complex narratives, and build strong analytical skills. <span class="txt-lf-conj">Furthermore</span>, reading physical books is a highly <span class="txt-lf-eval">powerful</span> and proven method to reduce daily stress and anxiety levels. Immersing yourself in a well-written, captivating story completely distracts your mind from daily pressures and lowers your heart rate. <span class="txt-lf-conj">Additionally</span>, reading a physical book before bed helps regulate sleep cycles, unlike digital screens which emit harmful blue light that disrupts your natural resting patterns.`,
+                reit: `<span class="txt-lf-conj">In conclusion</span>, because reading books offers countless cognitive, emotional, and psychological benefits, it remains an absolutely timeless and <span class="txt-lf-eval">priceless</span> habit that is definitely worth preserving in our modern society.`
+            },
+            3: {
+                title: "Public Transport Over Private Cars",
+                image: "assets/images/text3-transport.jpg",
+                caption: "Photo by Antroz",
+                thesis: `Traffic congestion in major metropolitan areas is getting noticeably worse every single year, causing massive financial losses and extreme stress for commuters. To solve this growing problem effectively, I <span class="txt-lf-eval">firmly argue</span> that citizens should drastically shift to using public transportation instead of relying on personal private cars.`,
+                arg: `The primary and most <span class="txt-lf-eval">crucial</span> reason for this transition is environmental protection. A massive reduction in personal vehicles directly <span class="txt-lf-present">translates</span> to less harmful greenhouse gas emissions, resulting in cleaner air and a healthier urban ecosystem. <span class="txt-lf-conj">Another</span> major benefit is overall financial economy. Utilizing modern buses, subway lines, or light rail networks <span class="txt-lf-present">is</span> significantly cheaper than paying for fuel, high parking fees, toll roads, and expensive vehicle maintenance. <span class="txt-lf-conj">Moreover</span>, using public transit reduces the immense mental strain of navigating gridlocked roads, allowing passengers the freedom to relax, read, or work productively during their daily commute.`,
+                reit: `From these <span class="txt-lf-eval">undeniable facts</span>, it is completely <span class="txt-lf-eval">obvious</span> that shifting away from private cars to public transport systems is an intelligent decision that greatly benefits both our personal wallets and the global environment.`
+            }
+        };
+
+        // --- STREAMING_CHUNK:Implementing Dual Filters & Floating Image... ---
+        function loadText(id, btnObj) {
+            document.querySelectorAll('.round-btn').forEach(b => b.classList.remove('active'));
+            if(btnObj) btnObj.classList.add('active');
+            
+            const tb = document.getElementById('analysis-text');
+            const data = textData[id];
+            
+            tb.innerHTML = `
+                <h3 style="text-align: center; margin-bottom: 1vmin; font-size: 2.5vmin; color:var(--text-header); font-family:'Inter', sans-serif; font-weight:700;">${data.title}</h3>
+                <div style="float: right; width: 28%; margin: 0 0 1vmin 2vmin; text-align: center; background: var(--bg-app); padding: 0.8vmin; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+                    <img src="${data.image}" style="width: 100%; border-radius: 4px; object-fit: cover;" alt="${data.title}">
+                    <span style="font-size: 0.9vmin; color: var(--text-light); display: block; margin-top: 0.5vmin;">Source: ${data.caption}</span>
+                </div>
+                <div style="text-align: justify;">
+                    <span class="txt-thesis">${data.thesis}</span><br><br>
+                    <span class="txt-arg">${data.arg}</span><br><br>
+                    <span class="txt-reit">${data.reit}</span>
+                </div>
+                <div style="clear: both;"></div>
+            `;
+            
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const textBox = document.getElementById('analysis-text');
+            const structVal = document.getElementById('struct-select').value;
+            const langVal = document.getElementById('lang-select').value;
+            
+            textBox.className = "text-box";
+            
+            if (structVal) {
+                textBox.classList.add(`hl-${structVal}-mode`);
+            }
+            if (langVal) {
+                textBox.classList.add(`hl-lf-${langVal}`);
+            }
+        }
+
+        // --- STREAMING_CHUNK:Handling Quizzes and Interactive Tools... ---
+        const playQuestions = [
+            { text: '"Many people frequently skip their breakfast because they are simply too busy in the chaotic morning..."', ans: 'thesis', ex: 'Awesome! This is introducing the topic and point of view (Thesis).' },
+            { text: '"Furthermore, reading physical books is a highly powerful and proven method to reduce daily stress..."', ans: 'arg', ex: 'Great job! This provides a supporting reason (Argument).' },
+            { text: '"In conclusion, because reading books offers countless cognitive, emotional, and psychological benefits..."', ans: 'reit', ex: 'Correct! This restates the conclusion (Reiteration).' },
+            { text: '"The primary and most crucial reason for this transition is environmental protection. A massive reduction..."', ans: 'arg', ex: 'Nice! This is a main supporting reason (Argument).' },
+            { text: '"Traffic congestion in major metropolitan areas is getting noticeably worse every single year..."', ans: 'thesis', ex: 'Spot on! This introduces the issue right at the beginning (Thesis).' }
+        ];
+        let currentPlayIndex = 0;
+
+        function loadPlayQuestion() {
+            const q = playQuestions[currentPlayIndex];
+            document.getElementById('play-q-num').innerText = currentPlayIndex + 1;
+            document.getElementById('play-question-text').innerText = q.text;
+            
+            const grid = document.getElementById('play-options');
+            grid.innerHTML = `
+                <button class="quiz-opt btn-sound" onclick="checkPlay('thesis')"><div><strong style="color:var(--color-thesis)">A.</strong> Thesis</div></button>
+                <button class="quiz-opt btn-sound" onclick="checkPlay('arg')"><div><strong style="color:var(--color-arg)">B.</strong> Argument</div></button>
+                <button class="quiz-opt btn-sound" onclick="checkPlay('reit')"><div><strong style="color:var(--color-reit)">C.</strong> Reiteration</div></button>
+                <button class="quiz-opt btn-sound" onclick="checkPlay('none')"><div><strong style="color:var(--text-light)">D.</strong> Resolution</div></button>
+            `;
+            document.querySelectorAll('.quiz-opt').forEach(btn => {
+                btn.addEventListener('click', () => { sfxClick.currentTime = 0; sfxClick.play().catch(e=>console.log("SFX blocked")); });
+            });
+        }
+
+        function checkPlay(selectedAns) {
+            const q = playQuestions[currentPlayIndex];
+            if (selectedAns === q.ans) {
+                showFeedback(true, "CORRECT!", q.ex);
+                currentPlayIndex++;
+                if (currentPlayIndex >= playQuestions.length) currentPlayIndex = 0; 
+                setTimeout(loadPlayQuestion, 1500);
+            } else {
+                showFeedback(false, "OOPS!", "That's not quite right. Try again, student!");
+            }
+        }
+
+        loadPlayQuestion();
+
+        const testSessions = {
+            1: {
+                name: "Session 1: The Importance of Breakfast", type: "Multiple Choice", desc: "10 evaluation questions based on Text 1.",
+                questions: [
+                    { q: "Why do some people often skip breakfast in the morning?", opts: ["They are too busy or think it helps fast weight loss", "They prefer having breakfast at lunch time", "Breakfast makes their body sleepy"], ans: 0 },
+                    { q: "What essential element does breakfast provide to kickstart the body?", opts: ["Pure oxygen", "Glucose and energy", "Chlorophyll"], ans: 1 },
+                    { q: "According to Text 1, when is your metabolism boosted significantly?", opts: ["After a night workout", "When you eat in the morning", "During a daytime nap"], ans: 1 },
+                    { q: "Eating in the morning directly prevents us from feeling...", opts: ["Full and energetic", "Tired, lethargic, or unfocused", "Restless and anxious"], ans: 1 },
+                    { q: "Which cognitive abilities are dramatically improved by having breakfast?", opts: ["Motor and sensory skills", "Athletic abilities", "Attention span and memory retention"], ans: 2 },
+                    { q: "Who are proven to perform better in complex tasks after eating breakfast?", opts: ["Active students and professional workers", "Toddlers only", "Public transport drivers only"], ans: 0 },
+                    { q: "Having breakfast prevents extreme hunger cravings that lead to unhealthy snacking in the...", opts: ["Afternoon", "Early morning", "Midnight"], ans: 0 },
+                    { q: "The author argues that a nutritious breakfast is the foundational part to...", opts: ["Lose weight like lightning", "Start our day in the right way", "Avoid dinner meals entirely"], ans: 1 },
+                    { q: "What is the INCORRECT belief about skipping breakfast mentioned in the text?", opts: ["It helps with rapid weight loss", "It prolongs sleeping hours", "It makes the heart healthier"], ans: 0 },
+                    { q: "What is the main conclusion (Reiteration) of Text 1?", opts: ["Breakfast is just optional", "We must never skip breakfast to maintain a healthy lifestyle", "Breakfast is only meant for young students"], ans: 1 }
+                ]
+            },
+            2: {
+                name: "Session 2: Why We Should Read Books", type: "True or False", desc: "10 statements about the benefits of reading (Text 2).",
+                questions: [
+                    { q: "Statement: Reading books regularly stimulates our complex brain connectivity.", opts: ["TRUE", "FALSE"], ans: 0 },
+                    { q: "Statement: Reading books actually limits someone's vocabulary.", opts: ["TRUE", "FALSE"], ans: 1 },
+                    { q: "Statement: Passive media consumption is much better for the brain than reading books.", opts: ["TRUE", "FALSE"], ans: 1 },
+                    { q: "Statement: Reading forces our minds to process complex narratives and build analytical skills.", opts: ["TRUE", "FALSE"], ans: 0 },
+                    { q: "Statement: Immersing yourself in a captivating story can reduce daily stress levels.", opts: ["TRUE", "FALSE"], ans: 0 },
+                    { q: "Statement: Reading a physical book before bed can destroy your natural sleep cycle.", opts: ["TRUE", "FALSE"], ans: 1 },
+                    { q: "Statement: Digital screens emit harmful blue light that disrupts resting patterns.", opts: ["TRUE", "FALSE"], ans: 0 },
+                    { q: "Statement: Physical books help the body regulate healthy sleep cycles.", opts: ["TRUE", "FALSE"], ans: 0 },
+                    { q: "Statement: Text 2 states that reading books is an outdated habit with no value today.", opts: ["TRUE", "FALSE"], ans: 1 },
+                    { q: "Statement: Reading books offers cognitive, emotional, and psychological benefits altogether.", opts: ["TRUE", "FALSE"], ans: 0 }
+                ]
+            },
+            3: {
+                name: "Session 3: Public Transport", type: "Structure Matching", desc: "Identify the correct text structure for these 10 quotes (Text 3).",
+                questions: [
+                    { q: 'Quote: "Traffic congestion in major metropolitan areas is getting noticeably worse every single year..."', opts: ["Thesis", "Argument", "Reiteration"], ans: 0 },
+                    { q: 'Quote: "To solve this growing problem effectively, citizens should shift to using public transportation..."', opts: ["Thesis", "Argument", "Reiteration"], ans: 0 },
+                    { q: 'Quote: "The primary and most crucial reason for this transition is environmental protection."', opts: ["Thesis", "Argument", "Reiteration"], ans: 1 },
+                    { q: 'Quote: "A massive reduction in personal vehicles directly translates to less harmful greenhouse gas emissions."', opts: ["Thesis", "Argument", "Reiteration"], ans: 1 },
+                    { q: 'Quote: "Another major benefit is overall financial economy. Utilizing modern buses or light rail is cheaper."', opts: ["Thesis", "Argument", "Reiteration"], ans: 1 },
+                    { q: 'Quote: "Using public transit reduces the immense mental strain of navigating gridlocked roads."', opts: ["Thesis", "Argument", "Reiteration"], ans: 1 },
+                    { q: 'Quote: "Passengers have the freedom to relax, read, or work productively during their commute."', opts: ["Thesis", "Argument", "Reiteration"], ans: 1 },
+                    { q: 'Quote: "Shifting away from private cars to public transport systems is an intelligent decision."', opts: ["Thesis", "Argument", "Reiteration"], ans: 2 },
+                    { q: 'Quote: "This shift greatly benefits both our personal wallets and the global environment."', opts: ["Thesis", "Argument", "Reiteration"], ans: 2 },
+                    { q: 'Quote: "From these undeniable facts, it is completely obvious that shifting away from private cars... (Concluding words)"', opts: ["Thesis", "Argument", "Reiteration"], ans: 2 }
+                ]
+            }
+        };
+
+        let sessionScores = { 1: null, 2: null, 3: null };
+        let activeSession = null;
+        let currentTestIdx = 0;
+        let testScore = 0;
+
+        function initializeTestHub() {
+            const container = document.getElementById('test-container');
+            container.innerHTML = `
+                <div class="tech-box" style="width: 90%; text-align: center; margin-bottom: 2vmin; padding: 2vmin;">
+                    <h4 style="color: var(--text-header); font-size: 2.5vmin; margin-bottom: 1vmin;">Test your deep understanding.</h4>
+    
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 2vmin; width: 90%;">
+                    ${[1, 2, 3].map(id => {
+                        const s = testSessions[id];
+                        const score = sessionScores[id];
+                        let statusText = `<span style="color: var(--text-light); font-weight: 600;">Not Started</span>`;
+                        if (score !== null) {
+                            statusText = `<span style="color: var(--color-reit); font-weight: bold;">Completed (Score: ${score * 10})</span>`;
+                        }
+                        return `
+                            <div class="session-card btn-sound" onclick="enterSession(${id})">
+                                <div class="session-info">
+                                    <h4 style="color: var(--primary); font-size: 2vmin; margin-bottom: 0.5vmin;">${s.name}</h4>
+                                    <p style="font-size: 1.6vmin; color: var(--text-light); margin-bottom: 0.5vmin;">Type: <strong>${s.type}</strong></p>
+                                    <p style="font-size: 1.5vmin; color: var(--text-main); font-style: italic;">${s.desc}</p>
+                                </div>
+                                <div class="session-badge">
+                                    ${statusText}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+            
+            document.querySelectorAll('.session-card').forEach(btn => {
+                btn.addEventListener('click', () => { sfxClick.currentTime = 0; sfxClick.play().catch(e=>console.log("SFX blocked")); });
+            });
+        }
+
+        function enterSession(id) {
+            activeSession = id;
+            currentTestIdx = 0;
+            testScore = 0;
+            renderTestQuestion();
+        }
+
+        function renderTestQuestion() {
+            const container = document.getElementById('test-container');
+            const session = testSessions[activeSession];
+            const q = session.questions[currentTestIdx];
+            
+            let optsHtml = '';
+            q.opts.forEach((opt, i) => {
+                let identifier = String.fromCharCode(65 + i);
+                if (session.type.includes("True")) {
+                    identifier = i === 0 ? "T" : "F";
+                }
+                optsHtml += `<button class="quiz-opt btn-sound" style="justify-content: center; text-align: center; padding: 1.8vmin;" onclick="ansTest(${i})"><strong>${identifier}.</strong> ${opt}</button>`;
+            });
+
+            container.innerHTML = `
+                <div style="width: 90%; margin-bottom: 2vmin; display: flex; justify-content: space-between; align-items: center;">
+                    <button class="btn-action btn-sound" style="font-size: 1.5vmin; padding: 0.8vmin 2vmin;" onclick="initializeTestHub()">
+                        <svg class="svg-icon" viewBox="0 0 24 24" style="width: 1.8vmin; height: 1.8vmin;"><polyline points="15 18 9 12 15 6"/></svg> Back
+                    </button>
+                    <div style="color: var(--primary); font-weight: bold; font-family: 'Orbitron', sans-serif; font-size: 1.8vmin; text-transform:uppercase;">
+                        ${session.name} | Q ${currentTestIdx + 1}/10
+                    </div>
+                </div>
+                
+                <div class="quiz-question-box" style="margin-bottom: 2.5vmin;">
+                    <p style="font-weight: 600; font-size: 2.2vmin; line-height: 1.6;">${q.q}</p>
+                </div>
+                
+                <div class="quiz-grid" style="grid-template-columns: 1fr; width: 90%;">
+                    ${optsHtml}
+                </div>
+            `;
+
+            document.querySelectorAll('.quiz-opt, .btn-action').forEach(btn => {
+                btn.addEventListener('click', () => { sfxClick.currentTime = 0; sfxClick.play().catch(e=>console.log("SFX blocked")); });
+            });
+        }
+
+        function ansTest(selectedIdx) {
+            const session = testSessions[activeSession];
+            const q = session.questions[currentTestIdx];
+            if (selectedIdx === q.ans) {
+                sfxCorrect.currentTime = 0; sfxCorrect.play().catch(e=>console.log("SFX blocked"));
+                testScore++;
+            } else {
+                sfxWrong.currentTime = 0; sfxWrong.play().catch(e=>console.log("SFX blocked"));
+            }
+            
+            currentTestIdx++;
+            if (currentTestIdx < session.questions.length) {
+                renderTestQuestion();
+            } else {
+                sessionScores[activeSession] = testScore;
+                showTestResult();
+            }
+        }
+
+        function showTestResult() {
+            const container = document.getElementById('test-container');
+            const session = testSessions[activeSession];
+            let finalScore = testScore * 10;
+            let msg = finalScore >= 70 ? "PASSED! You mastered this section perfectly, student!" : "ALMOST THERE! Please review the related text and try again.";
+            let color = finalScore >= 70 ? "var(--color-reit)" : "var(--color-thesis)";
+            
+            container.innerHTML = `
+                <div class="tech-box" style="text-align: center; width: 80%; max-width: 500px; border: 2px solid ${color}; box-shadow: 0 10px 30px ${color}33; background: var(--bg-app); padding: 4vmin;">
+                    <h3 style="color: ${color}; margin-bottom: 1vmin; font-size: 3.5vmin; font-family: 'Orbitron', sans-serif;">SESSION COMPLETED</h3>
+                    <h4 style="color: var(--text-header); margin-bottom: 2vmin; font-size: 2.5vmin;">YOUR SCORE: ${finalScore} / 100</h4>
+                    <p style="margin-bottom: 3vmin; font-size: 2vmin; color: var(--text-main); font-weight: 500; line-height: 1.5;">${msg}</p>
+                    
+                    <div style="display: flex; gap: 2vmin; justify-content: center;">
+                        <button class="btn-action btn-sound" style="background: ${color};" onclick="enterSession(${activeSession})">
+                            <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg> RETRY
+                        </button>
+                        <button class="btn-action btn-sound" style="background: var(--primary);" onclick="initializeTestHub()">
+                            MAIN MENU
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.querySelectorAll('.btn-action').forEach(btn => {
+                btn.addEventListener('click', () => { sfxClick.currentTime = 0; sfxClick.play().catch(e=>console.log("SFX blocked")); });
+            });
+        }
+
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        function showFeedback(isCorrect, titleText, message) {
+            const container = document.getElementById('fb-icon-container');
+            const title = document.getElementById('fb-title');
+            
+            if (isCorrect) {
+                sfxCorrect.currentTime = 0; sfxCorrect.play().catch(e=>console.log("SFX blocked"));
+                container.innerHTML = `<svg class="svg-icon" viewBox="0 0 24 24" style="width:8vmin; height:8vmin; color:var(--color-reit);"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
+                title.innerText = titleText; title.style.color = "var(--color-reit)";
+            } else {
+                sfxWrong.currentTime = 0; sfxWrong.play().catch(e=>console.log("SFX blocked"));
+                container.innerHTML = `<svg class="svg-icon" viewBox="0 0 24 24" style="width:8vmin; height:8vmin; color:var(--color-thesis);"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
+                title.innerText = titleText; title.style.color = "var(--color-thesis)";
+            }
+            document.getElementById('fb-msg').innerText = message;
+            openModal('modal-feedback');
+        }
+
+        function toggleFullScreen() {
+            const doc = window.document;
+            const docEl = doc.documentElement;
+            const icon = document.getElementById('fs-icon');
+
+            const requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+            const cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+
+            if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+                requestFullScreen.call(docEl);
+                icon.innerHTML = `<path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>`;
+            } else {
+                cancelFullScreen.call(doc);
+                icon.innerHTML = `<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>`;
+            }
+        }
+    </script>
+</body>
+</html>
